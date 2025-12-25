@@ -1,4 +1,4 @@
-# ESP32 WiFi Weather Display 🌤️
+# ESP32 WiFi Desktop Companion 🌤️
 
 [![ESP32](https://img.shields.io/badge/ESP32-WiFi%20Weather-blue?style=flat-square&logo=espressif)](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/)
 [![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v5.x-green?style=flat-square&logo=esp-idf)](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/)
@@ -126,17 +126,24 @@ The firmware maintains a **`current_mode`** variable:
   - Shows **"Loading…"** and, if not connected, also the **no‑WiFi icon**
 
 ## 🏗️ Project Structure (Suggested)
-esp32-oled-weather/
-├─ main/
-│ ├─ main.c # This file (UI, tasks, logic)
-│ ├─ wifi_handler.c # connect_ap_sta, wifi_retry_task, flags
-│ ├─ icons.c/.h # bitmaps: sun, coffee, snowflake, no_wifi
-│ ├─ shared.h # shared globals (latest_temp, http_echo_value, flags)
-│ └─ CMakeLists.txt
-├─ components/
-│ └─ ssd1306/ # OLED driver
-├─ CMakeLists.txt
-└─ sdkconfig
+
+desktopCompanion/
+├── main/                    # Primary component
+│   ├── main.c              # Your main code (this file)
+│   ├── wifi_handler.c      # WiFi + retry task
+│   ├── wifi_handler.h
+│   ├── icons.c             # Bitmap data
+│   ├── icons.h             # Bitmap externs
+│   ├── shared.h            # Global variables
+│   └── CMakeLists.txt      # Component build
+├── components/
+│   └── ssd1306/            # OLED driver (if external)
+│       ├── ssd1306.c
+│       └── CMakeLists.txt
+├── CMakeLists.txt          # Project root
+├── sdkconfig               # Config (gitignored)
+└── build/                  # Build output (gitignored)
+
 
 ## ⚙️ Build & Flash
 
