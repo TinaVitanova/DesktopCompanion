@@ -126,4 +126,26 @@ The firmware maintains a **`current_mode`** variable:
   - Shows **"Loading…"** and, if not connected, also the **no‑WiFi icon**
 
 ## 🏗️ Project Structure (Suggested)
+esp32-oled-weather/
+├─ main/
+│ ├─ main.c # This file (UI, tasks, logic)
+│ ├─ wifi_handler.c # connect_ap_sta, wifi_retry_task, flags
+│ ├─ icons.c/.h # bitmaps: sun, coffee, snowflake, no_wifi
+│ ├─ shared.h # shared globals (latest_temp, http_echo_value, flags)
+│ └─ CMakeLists.txt
+├─ components/
+│ └─ ssd1306/ # OLED driver
+├─ CMakeLists.txt
+└─ sdkconfig
 
+## ⚙️ Build & Flash
+
+Configure target and project (from project root)
+idf.py set-target esp32
+idf.py menuconfig
+
+Build
+idf.py build
+
+Flash & monitor
+idf.py flash monitor
