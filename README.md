@@ -1,53 +1,129 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C5 | ESP32-C6 | ESP32-C61 | ESP32-H2 | ESP32-H21 | ESP32-H4 | ESP32-P4 | ESP32-S2 | ESP32-S3 | Linux |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | --------- | -------- | --------- | -------- | -------- | -------- | -------- | ----- |
+# ESP32 WiFi Weather Display 🌤️
 
-# Hello World Example
+[![ESP32](https://img.shields.io/badge/ESP32-WiFi%20Weather-blue?style=flat-square&logo=espressif)](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/)
+[![ESP-IDF](https://img.shields.io/badge/ESP--IDF-v5.x-green?style=flat-square&logo=esp-idf)](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/)
 
-Starts a FreeRTOS task to print "Hello World".
+**ESP32 firmware for a small OLED weather station** that shows **time, temperature and HTTP‑provided status/icons**, with two buttons for UI control and WiFi retry, plus infrastructure ready for deep sleep control on a second button.
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+> BTN1 changes what you see on the OLED, BTN2 triggers actions like WiFi retry, weather fetch, or icon/text toggle.
 
-## How to use example
+## ✨ Features
 
-Follow detailed instructions provided specifically for this example.
+- **SSD1306 I2C OLED** display (128×64) showing:
+  - Current time (from NTP)  
+  - Latest fetched temperature value  
+  - HTTP text or matching icon (Sun / Coffee / Snowflake)
+- **Two-button UI**:
+  - **Button 1 (GPIO4 → GND, internal pull‑up)**: cycles display modes  
+    - Mode 0: Time  
+    - Mode 1: Temperature  
+    - Mode 2: HTTP text / icons
+  - **Button 2 (GPIO33 → VCC, internal pull‑down)**: context action  
+    - Mode 0: requests "sleep / WiFi retry" via `retry_wifi_task`  
+    - Mode 1: notifies `weather_task` to fetch weather  
+    - Mode 2: toggles between text and icon view
+- **WiFi + NTP integration** via `connect_ap_sta()` and a weather HTTP client
+- **Simple task structure**:
+  - `weather_task` waits on notifications and calls `fetch_weather()`
+  - `wifi_retry_task` (external) handles reconnection / retries when BTN2 in mode 0
+  - Two button tasks for debounced polling at 50 ms
+- **No‑WiFi indicator**: overlay "no WiFi" bitmap in all relevant screens when disconnected
 
-Select the instructions depending on Espressif chip installed on your development board:
+## 🧱 Hardware Connections
 
-- [ESP32 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/stable/get-started/index.html)
-- [ESP32-S2 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s2/get-started/index.html)
+### ESP32 Core
 
+| Function      | ESP32 GPIO | Notes                       |
+|---------------|-----------:|-----------------------------|
+| **BTN1**      | **GPIO4**  | Button → GND, pull‑up only  |
+| **BTN2**      | **GPIO33** | Button → 3.3V, pull‑down    |
+| **I2C SCL**   | **GPIO22** | SSD1306 SCL                 |
+| **I2C SDA**   | **GPIO21** | SSD1306 SDA                 |
 
-## Example folder contents
+### SSD1306 OLED (I2C)
 
-The project **hello_world** contains one source file in C language [hello_world_main.c](main/hello_world_main.c). The file is located in folder [main](main).
+| OLED Pin | ESP32 Pin |
+|----------|-----------|
+| VCC      | 3.3V      |
+| GND      | GND       |
+| SCL      | GPIO22    |
+| SDA      | GPIO21    |
 
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt` files that provide set of directives and instructions describing the project's source files and targets (executable, library, or both).
+Buttons are **active-low / active-high by design**:  
+- BTN1: idle = HIGH (due to pull‑up), pressed = LOW  
+- BTN2: idle = LOW (due to pull‑down), pressed = HIGH  
 
-Below is short explanation of remaining files in the project folder.
+## 📺 Display Modes
 
-```
-├── CMakeLists.txt
-├── pytest_hello_world.py      Python script used for automated testing
-├── main
-│   ├── CMakeLists.txt
-│   └── hello_world_main.c
-└── README.md                  This is the file you are currently reading
-```
+The firmware maintains a **`current_mode`** variable:
 
-For more information on structure and contents of ESP-IDF projects, please refer to Section [Build System](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/build-system.html) of the ESP-IDF Programming Guide.
+| Mode | Content            | BTN2 Action                                  |
+|------|--------------------|----------------------------------------------|
+| 0    | Time (HH:MM:SS)    | Request sleep / WiFi retry via notification |
+| 1    | Temperature + city | Notify `weather_task` to refetch weather    |
+| 2    | HTTP text / icons  | Toggle between multiline text and icons     |
 
-## Troubleshooting
+### Time Mode (0)
 
-* Program upload failure
+- Uses `time()` + `localtime_r()` to format **HH:MM:SS**
+- Only renders when **`wifi_and_time_synced == true`**
+- If WiFi is down, draws a **no‑WiFi icon overlay** in the top right
 
-    * Hardware connection is not correct: run `idf.py -p PORT monitor`, and reboot your board to see if there are any output logs.
-    * The baud rate for downloading is too high: lower your baud rate in the `menuconfig` menu, and try again.
+### Temperature Mode (1)
 
-## Technical support and feedback
+- Displays `latest_temp` as `"Temp: XX.XC"`  
+- Shows a hardcoded location label (`"Skopje"`) under the temperature
 
-Please use the following feedback channels:
+### HTTP Text / Icon Mode (2)
 
-* For technical queries, go to the [esp32.com](https://esp32.com/) forum
-* For a feature request or bug report, create a [GitHub issue](https://github.com/espressif/esp-idf/issues)
+- If `showIcons == true`:  
+  - Renders `http_echo_value` as multi‑line text (max 4 lines, 15 chars/line)
+- If `showIcons == false`:  
+  - Matches `http_echo_value` against keywords and shows:
+    - `"Sun"` → `sun_bitmap`
+    - `"Coffee"` → `coffee_cup_bitmap`
+    - `"Snowflake"` → `snowflake_bitmap`
+    - Else → `"Missing icon..."` text
 
-We will get back to you as soon as possible.
+## 🧵 Tasks & Button Handling
+
+### Button 1 Task (`button_1_task`)
+
+- Config:
+  - `GPIO4`, input, internal pull‑up
+- Logic:
+  1. Poll every 50 ms
+  2. Detect falling edge (HIGH → LOW) with 300 ms debounce
+  3. Increment `current_mode = (current_mode + 1) % DISPLAY_MODES`
+  4. Call `update_display()` to redraw current screen
+
+### Button 2 Task (`button_2_task`)
+
+- Config:
+  - `GPIO33`, input, internal pull‑down (button to VCC)
+- Logic:
+  1. Poll every 50 ms
+  2. Detect rising edge (LOW → HIGH) with 300 ms debounce
+  3. Switch on `current_mode`:
+     - Mode 0: print *"BTN2: Sleep requested!"*, reset `retry_wifi_num`, notify `retry_task_handle`
+     - Mode 1: notify `weather_task_handle` (fetch new weather)
+     - Mode 2: toggle `showIcons` and refresh via `toggle_view()`
+
+### Weather Task (`weather_task`)
+
+- Blocks on `ulTaskNotifyTake(pdTRUE, portMAX_DELAY)`
+- On notification → calls `fetch_weather()` to update `latest_temp` and `http_echo_value`
+
+## 🌐 WiFi & Time
+
+- `connect_ap_sta()` handles:
+  - Initial WiFi connection in **station mode**
+  - NTP time synchronization (sets `wifi_and_time_synced` and `wifi_connected`)
+- `wifi_retry_task` (external source) reacts to BTN2 requests in mode 0:
+  - Retries WiFi connection
+  - Clears / updates `wifi_connected` and possibly `retry_wifi_num`
+- OLED boot:
+  - Shows **"Loading…"** and, if not connected, also the **no‑WiFi icon**
+
+## 🏗️ Project Structure (Suggested)
+
