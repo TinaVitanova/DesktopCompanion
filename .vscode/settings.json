@@ -1,0 +1,20 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.espIdfPathWin": "C:\\Users\\Martina Damjanovska\\esp\\v5.5.1\\esp-idf",
+  "idf.pythonInstallPath": "c:\\Espressif\\tools\\idf-python\\3.11.2\\python.exe",
+  "idf.openOcdConfigs": [
+    "board/esp32-wrover-kit-3.3v.cfg"
+  ],
+  "idf.toolsPathWin": "c:\\Espressif",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32"
+  },
+  "clangd.path": "c:\\Espressif\\tools\\esp-clang\\esp-19.1.2_20250312\\esp-clang\\bin\\clangd.exe",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=c:\\Users\\Martina Damjanovska\\DesktopCompanion\\build"
+  ],
+  "idf.flashType": "UART",
+  "idf.portWin": "COM10"
+}
