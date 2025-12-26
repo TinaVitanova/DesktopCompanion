@@ -19,7 +19,7 @@
     - Mode 1: Temperature  
     - Mode 2: HTTP text / icons
   - **Button 2 (GPIO33 → VCC, internal pull‑down)**: context action  
-    - Mode 0: requests "sleep / WiFi retry" via `retry_wifi_task`  
+    - Mode 0: requests "WiFi retry" via `retry_wifi_task`  
     - Mode 1: notifies `weather_task` to fetch weather  
     - Mode 2: toggles between text and icon view
 - **WiFi + NTP integration** via `connect_ap_sta()` and a weather HTTP client
