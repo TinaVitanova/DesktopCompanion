@@ -81,7 +81,7 @@ void draw_multi_line(int x, int y, const char *text, int font_size) {
 
 // Show no wifi icon always on top of everything
 void show_no_wifi_icon(void) {
-    ssd1306_draw_bitmap(oled, 100, 0, no_wifi_bitmap, 24,24);
+    ssd1306_draw_bitmap(oled, 105, 0, no_wifi_bitmap, 18,18);
     ssd1306_refresh_gram(oled);
 }
 
@@ -214,7 +214,6 @@ void button_2_task(void *pv) {
             if (now - last_btn_2_time > 300) {  // 300ms debounce
                 switch(current_mode) {
                     case 0: {
-                        printf("BTN2: Sleep requested!\n");
                         retry_wifi_num = 0;
                         if (retry_task_handle) xTaskNotifyGive(retry_task_handle);
                         break;
